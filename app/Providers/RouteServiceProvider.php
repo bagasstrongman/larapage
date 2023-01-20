@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\Media;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvider;
 use Illuminate\Http\Request;
@@ -11,31 +12,92 @@ use Illuminate\Support\Facades\Route;
 class RouteServiceProvider extends ServiceProvider
 {
     /**
-     * The path to the "home" route for your application.
+     * This namespace is applied to your controller routes.
      *
-     * Typically, users are redirected here after authentication.
+     * In addition, it is set as the URL generator's root namespace.
      *
      * @var string
      */
-    public const HOME = '/home';
+    protected $namespace = 'App\Http\Controllers';
 
     /**
-     * Define your route model bindings, pattern filters, and other route configuration.
+     * The path to the "home" route for your application.
      *
-     * @return void
+     * This is used by Laravel authentication to redirect users after login.
+     *
+     * @var string
      */
-    public function boot()
+    public const HOME = '/';
+
+    /**
+     * Define your route model bindings, pattern filters, etc.
+     */
+    public function boot(): void
     {
         $this->configureRateLimiting();
 
-        $this->routes(function () {
-            Route::middleware('api')
-                ->prefix('api')
-                ->group(base_path('routes/api.php'));
+        Route::model('medium', Media::class);
+    }
 
-            Route::middleware('web')
-                ->group(base_path('routes/web.php'));
-        });
+    /**
+     * Define the routes for the application.
+     */
+    public function map(): void
+    {
+        $this->mapApiRoutes();
+
+        $this->mapAuthRoutes();
+
+        $this->mapWebRoutes();
+
+        $this->mapAdminRoutes();
+    }
+
+    /**
+     * Define the "web" routes for the application.
+     *
+     * These routes all receive session state, CSRF protection, etc.
+     */
+    protected function mapWebRoutes(): void
+    {
+        Route::middleware('web')
+             ->group(base_path('routes/web.php'));
+    }
+
+    /**
+     * Define the "api" routes for the application.
+     *
+     * These routes are typically stateless.
+     */
+    protected function mapApiRoutes(): void
+    {
+        Route::prefix('api')
+             ->middleware('api')
+             ->group(base_path('routes/api.php'));
+    }
+
+    /**
+     * Define the "admin" routes for the application.
+     *
+     * These routes are typically stateless.
+     */
+    protected function mapAdminRoutes(): void
+    {
+        Route::prefix('admin')
+             ->middleware(['web', 'auth', 'role:admin', 'verified'])
+             ->as('admin.')
+             ->group(base_path('routes/admin.php'));
+    }
+
+    /**
+     * Define the "auth" routes for the application.
+     *
+     * These routes are typically stateless.
+     */
+    protected function mapAuthRoutes(): void
+    {
+        Route::middleware('web')
+             ->group(base_path('routes/auth.php'));
     }
 
     /**
